@@ -25,7 +25,7 @@ providers:
 certificatesResolvers:
   letsencrypt:
     acme:
-      email: mariodamian1986@gmail.com # ¡CAMBIAR POR TU CORREO ELECTRÓNICO!
+      email: mariodamian1986@gmail.com 
       storage: /etc/traefik/acme.json
       httpChallenge:
         entryPoint: web
