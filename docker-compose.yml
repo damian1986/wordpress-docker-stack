@@ -22,7 +22,7 @@ services:
       - "traefik.http.routers.traefik-dashboard.rule=Host(`traefik.great-byte.com`)"
       - "traefik.http.routers.traefik-dashboard.service=api@internal"
       - "traefik.http.routers.traefik-dashboard.middlewares=traefik-auth"
-      - "traefik.http.middlewares.traefik-auth.basicauth.users=admin:$$apr1$$qvyjhck6$$WfUURRGwAyqViLnyoMfkc1"
+      - "traefik.http.middlewares.traefik-auth.basicauth.users=admin:$$apr1$$/t4m4P2s$$qgB8fU3n0t.A2V7p8Z2c/"
       - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
       - "traefik.http.routers.traefik-dashboard.tls.certresolver=letsencrypt"
 
@@ -68,9 +68,15 @@ services:
       WORDPRESS_TABLE_PREFIX: wp_
     volumes:
       - ./wordpress/albaclinicalresearch:/var/www/html
-      - ./php-configs/upload.ini:/usr/local/etc/php/conf.d/upload.ini
+      - ./php-configs/php.ini:/usr/local/etc/php/conf.d/upload.ini
     networks:
       - wordpress_net1
+    healthcheck: # Healthcheck para PHP-FPM
+      test: ["CMD-SHELL", "php -r \"exit(0);\""] # Verifica que el intérprete PHP funciona
+      interval: 30s # Frecuencia de la comprobación
+      timeout: 10s # Tiempo máximo para que la comprobación se complete
+      retries: 3 # Número de reintentos antes de marcar como unhealthy
+      start_period: 30s # Periodo de gracia para el inicio del contenedor
 
   # Nginx para albaclinicalresearch.com
   wordpress_nginx1:
@@ -91,6 +97,12 @@ services:
       - "traefik.http.routers.wordpress1.entrypoints=websecure"
       - "traefik.http.routers.wordpress1.tls.certresolver=letsencrypt"
       - "traefik.http.services.wordpress1.loadbalancer.server.port=80"
+    healthcheck: # Healthcheck para Nginx
+      test: ["CMD-SHELL", "curl -f http://localhost/ || exit 1"] # Verifica que Nginx responde a peticiones HTTP
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
   # Base de Datos para great-byte.com
   db2:
@@ -123,9 +135,15 @@ services:
       WORDPRESS_TABLE_PREFIX: wp_
     volumes:
       - ./wordpress/great-byte:/var/www/html
-      - ./php-configs/upload.ini:/usr/local/etc/php/conf.d/upload.ini
+      - ./php-configs/php.ini:/usr/local/etc/php/conf.d/upload.ini
     networks:
       - wordpress_net2
+    healthcheck: # Healthcheck para PHP-FPM
+      test: ["CMD-SHELL", "php -r \"exit(0);\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   # Nginx para great-byte.com
   wordpress_nginx2:
@@ -146,6 +164,12 @@ services:
       - "traefik.http.routers.wordpress2.entrypoints=websecure"
       - "traefik.http.routers.wordpress2.tls.certresolver=letsencrypt"
       - "traefik.http.services.wordpress2.loadbalancer.server.port=80"
+    healthcheck: # Healthcheck para Nginx
+      test: ["CMD-SHELL", "curl -f http://localhost/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
   # Base de Datos para kromopinceles.com
   db3:
@@ -178,9 +202,15 @@ services:
       WORDPRESS_TABLE_PREFIX: wp_
     volumes:
       - ./wordpress/kromopinceles:/var/www/html
-      - ./php-configs/upload.ini:/usr/local/etc/php/conf.d/upload.ini
+      - ./php-configs/php.ini:/usr/local/etc/php/conf.d/upload.ini
     networks:
       - wordpress_net3
+    healthcheck: # Healthcheck para PHP-FPM
+      test: ["CMD-SHELL", "php -r \"exit(0);\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   # Nginx para kromopinceles.com
   wordpress_nginx3:
@@ -201,6 +231,12 @@ services:
       - "traefik.http.routers.wordpress3.entrypoints=websecure"
       - "traefik.http.routers.wordpress3.tls.certresolver=letsencrypt"
       - "traefik.http.services.wordpress3.loadbalancer.server.port=80"
+    healthcheck: # Healthcheck para Nginx
+      test: ["CMD-SHELL", "curl -f http://localhost/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
   # Base de Datos para citasmaya.com
   db4:
@@ -233,7 +269,7 @@ services:
       WORDPRESS_TABLE_PREFIX: wp_
     volumes:
       - ./wordpress/citasmaya:/var/www/html
-      - ./php-configs/upload.ini:/usr/local/etc/php/conf.d/upload.ini
+      - ./php-configs/php.ini:/usr/local/etc/php/conf.d/upload.ini
     networks:
       - proxy
       - wordpress_net4
@@ -243,6 +279,12 @@ services:
       - "traefik.http.routers.wordpress4.entrypoints=websecure"
       - "traefik.http.routers.wordpress4.tls.certresolver=letsencrypt"
       - "traefik.http.services.wordpress4.loadbalancer.server.port=80"
+    healthcheck: # Healthcheck para WordPress con Apache
+      test: ["CMD-SHELL", "curl -f http://localhost/wp-admin/install.php || exit 1"] # Verifica que Apache y WordPress responden
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s # Se da un poco más de tiempo para el inicio
 
   # Prometheus - Recolector de métricas
   prometheus:
@@ -284,7 +326,43 @@ services:
       - "traefik.http.routers.grafana.entrypoints=websecure"
       - "traefik.http.routers.grafana.tls.certresolver=letsencrypt"
       - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+    depends_on:
+      - loki
+  # Loki - Almacenamiento de logs
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: loki
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki/loki-config.yml:/etc/loki/loki-config.yml
+      - ./loki_data:/loki
+    command: -config.file=/etc/loki/loki-config.yml -config.expand-env=true
+    networks:
+      - monitoring
 
+  # Promtail - Agente para recolectar y enviar logs a Loki
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: promtail
+    restart: unless-stopped
+    volumes:
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./promtail:/etc/promtail
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: -config.file=/etc/promtail/promtail-config.yml
+    networks:
+      - monitoring
+      - proxy
+      - wordpress_net1
+      - wordpress_net2
+      - wordpress_net3
+      - wordpress_net4
+    depends_on:
+      - loki
+      
   # Node Exporter - Métricas del host (CPU, RAM, Disco, etc.)
   node_exporter:
     image: prom/node-exporter:latest
@@ -333,6 +411,25 @@ services:
       - "traefik.http.routers.uptime-kuma.entrypoints=websecure"
       - "traefik.http.routers.uptime-kuma.tls.certresolver=letsencrypt"
       - "traefik.http.services.uptime-kuma.loadbalancer.server.port=3001"
+
+  # Portainer - Gestión de contenedores Docker (Community Edition)
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./portainer_data:/data
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.portainer.rule=Host(`portainer.great-byte.com`)"
+      - "traefik.http.routers.portainer.entrypoints=websecure"
+      - "traefik.http.routers.portainer.tls.certresolver=letsencrypt"
+      - "traefik.http.services.portainer.loadbalancer.server.port=9000"
+
+
 networks:
   proxy:
     external: true
