@@ -259,7 +259,7 @@ services:
     depends_on:
       - db4
       - redis
-    image: wordpress:latest
+    image: wordpress:php8.3-apache
     container_name: wordpress4
     restart: unless-stopped
     environment:
@@ -379,7 +379,7 @@ services:
     restart: unless-stopped
     environment:
       GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: your_grafana_admin_password
+      GF_SECURITY_ADMIN_PASSWORD: Paris331
     volumes:
       - ./grafana:/var/lib/grafana
     networks:
