@@ -379,7 +379,7 @@ services:
     restart: unless-stopped
     environment:
       GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: Paris331
+      GF_SECURITY_ADMIN_PASSWORD: your_grafana_admin_password
     volumes:
       - ./grafana:/var/lib/grafana
     networks:
